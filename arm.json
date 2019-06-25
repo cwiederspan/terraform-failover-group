@@ -11,16 +11,17 @@
             "type": "string"
         },
         "sqlDatabases": {
-            "type": "array",
-            "defaultValue": ["MyData", "TestData"]
+            "type": "string"
         }
     },
-    "variables": {},
+    "variables": {
+        "sqlDbNameArray": "[split(parameters('sqlDatabases'), ',')]"
+    },
     "resources": [
         {
             "type": "Microsoft.Sql/servers/failoverGroups",
             "apiVersion": "2015-05-01-preview",
-            "name": "[concat(parameters('sqlServerPrimaryName'), '/my-failover-group-20190620-test')]",
+            "name": "[concat(parameters('sqlServerPrimaryName'), '/my-failover-group-20190620')]",
             "location": "South Central US",
             "properties": {
                 "readWriteEndpoint": {
@@ -30,15 +31,13 @@
                 "readOnlyEndpoint": {
                     "failoverPolicy": "Disabled"
                 },
-                "partnerServers": [
-                    {
-                        "id": "[resourceId('Microsoft.Sql/servers', parameters('sqlServerSecondaryName'))]"
-                    }
-                ],
+                "partnerServers": [{
+                    "id": "[resourceId('Microsoft.Sql/servers', parameters('sqlServerSecondaryName'))]"
+                }],
                 "copy": [{
                     "name": "databases",
-                    "count": "[length(parameters('sqlDatabases'))]",
-                    "input": "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerPrimaryName'), parameters('sqlDatabases')[copyIndex('databases')])]"
+                    "count": "[length(variables('sqlDbNameArray'))]",
+                    "input": "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerPrimaryName'), variables('sqlDbNameArray')[copyIndex('databases')])]"
                 }]
             }
         }
