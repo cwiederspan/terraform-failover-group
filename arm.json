@@ -1,0 +1,46 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "sqlServerPrimaryName": {
+            "defaultValue": "cdw-sqlreptestsouth-20190620",
+            "type": "string"
+        },
+        "sqlServerSecondaryName": {
+            "defaultValue": "cdw-sqlreptesteast-20190620",
+            "type": "string"
+        },
+        "sqlDatabases": {
+            "type": "array",
+            "defaultValue": ["MyData", "TestData"]
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Sql/servers/failoverGroups",
+            "apiVersion": "2015-05-01-preview",
+            "name": "[concat(parameters('sqlServerPrimaryName'), '/my-failover-group-20190620-test')]",
+            "location": "South Central US",
+            "properties": {
+                "readWriteEndpoint": {
+                    "failoverPolicy": "Automatic",
+                    "failoverWithDataLossGracePeriodMinutes": 60
+                },
+                "readOnlyEndpoint": {
+                    "failoverPolicy": "Disabled"
+                },
+                "partnerServers": [
+                    {
+                        "id": "[resourceId('Microsoft.Sql/servers', parameters('sqlServerSecondaryName'))]"
+                    }
+                ],
+                "copy": [{
+                    "name": "databases",
+                    "count": "[length(parameters('sqlDatabases'))]",
+                    "input": "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerPrimaryName'), parameters('sqlDatabases')[copyIndex('databases')])]"
+                }]
+            }
+        }
+    ]
+}
